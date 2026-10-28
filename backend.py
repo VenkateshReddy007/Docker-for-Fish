@@ -119,7 +119,7 @@ def ingest(data: TelemetryIn):
     ring, beeps, price = "RED", (2 if prev in ["GREEN", "YELLOW"] else 0), 160
 
   if data.switch_user and beeps == 0:
-    beeps = 1  # 1 Beep confirms custody switch via Push Button
+    beeps = 1  
   STATE["prev_ring"] = ring
 
   rec = {
