@@ -22,7 +22,7 @@ try:
     client = (
         MongoClient(MONGO_URI, serverSelectionTimeoutMS=1200)
         if MONGO_URI
-        else none
+        else None
     )
     if client:
         client.server_info()
@@ -33,7 +33,7 @@ except Exception:
 MEM_TELEMETRY, MEM_AUDIT = [], []
 
 X_train = np.array([
-    [2.0, 7.5, 25],
+    [2.0, 75, 25],
     [4.0, 78, 45],
     [6.5 , 82 , 85],
     [9.0, 85, 140],
@@ -67,7 +67,7 @@ HUBS = [
 
 ]
 
-USERs = [
+USERS = [
     "Boat Fisher (Panambur)",
     "Bunder Auction Agent",
     "Tempo Transporter",
@@ -76,7 +76,7 @@ USERs = [
 
 STATE = {
     "prev_ring" : "GREEN",
-    "Core_temp" : 3.0,
+    "core_temp" : 3.0,
     "hub" : HUBS[0],
     "user_idx": 3,
 }
