@@ -82,4 +82,106 @@ STATE = {
 }
 
 class TelemetryIn(BaseModel):
-    crate_temp: float = Field(..., ge=5.0, le=50.0)
+  crate_temp: float = Field(..., ge=-5.0, le=50.0)
+  humidity: float = Field(default=78.0, ge=10.0, le=100.0)
+  gas_ppm: float = Field(default=35.0, ge=0.0, le=1000.0)
+  switch_user: bool = False
+  hub: str = ""
+  stamp_ledger: bool = False
+
+
+@app.post("/telemetry")
+def ingest(data: TelemetryIn):
+  if data.hub in HUBS:
+    STATE["hub"] = data.hub
+  if data.switch_user:
+    STATE["user_idx"] = (STATE["user_idx"] + 1) % len(USERS)
+
+  owner = USERS[STATE["user_idx"]]
+  
+  STATE["core_temp"] = round(
+      STATE["core_temp"] + 0.25 * (data.crate_temp - STATE["core_temp"]), 1
+  )
+  core_t = STATE["core_temp"]
+
+  
+  preds = rf_model.predict([[core_t, data.humidity, data.gas_ppm]])[0]
+  hrs_left = round(float(preds[0]), 1)
+  next_temp = round(float(preds[1]), 1)
+
+  
+  prev = STATE["prev_ring"]
+  if hrs_left >= 24.0 and data.gas_ppm < 80:
+    ring, beeps, price = "GREEN", 0, 300
+  elif hrs_left >= 10.0 and data.gas_ppm < 180:
+    ring, beeps, price = "YELLOW", (1 if prev == "GREEN" else 0), 240
+  else:
+    ring, beeps, price = "RED", (2 if prev in ["GREEN", "YELLOW"] else 0), 160
+
+  if data.switch_user and beeps == 0:
+    beeps = 1  # 1 Beep confirms custody switch via Push Button
+  STATE["prev_ring"] = ring
+
+  rec = {
+      "time": datetime.now().strftime("%H:%M:%S"),
+      "owner": owner,
+      "hub": STATE["hub"],
+      "raw_temp": round(data.crate_temp, 1),
+      "core_temp": core_t,
+      "humidity": round(data.humidity, 1),
+      "gas_ppm": round(data.gas_ppm, 1),
+      "shelf_life_hrs": hrs_left,
+      "next_1hr_temp": next_temp,
+      "ring_color": ring,
+      "beeps": beeps,
+      "floor_price": price,
+      "rental_cap": 15,
+  }
+  (
+      db["telemetry"].insert_one(rec.copy())
+      if USE_MONGO
+      else MEM_TELEMETRY.append(rec.copy())
+  )
+
+  if data.stamp_ledger or data.switch_user:
+    last = (
+        db["audit"].find_one(sort=[("_id", -1)])
+        if USE_MONGO
+        else (MEM_AUDIT[-1] if MEM_AUDIT else None)
+    )
+    p_hash = last["hash"] if last else "0000_GENESIS"
+    raw = f"{STATE['hub']}|{owner}|{core_t}|{data.gas_ppm}|{ring}|{p_hash}"
+    block = {
+        "time": rec["time"],
+        "event": "USER_SCAN" if data.switch_user else "CHECKPOINT",
+        "hub": STATE["hub"].split("(")[0],
+        "owner": owner,
+        "core_temp": f"{core_t}C",
+        "gas_ppm": round(data.gas_ppm, 0),
+        "shelf_life": f"{hrs_left}h",
+        "ring": ring,
+        "prev_hash": p_hash,
+        "hash": hashlib.sha256(raw.encode()).hexdigest()[:10],
+    }
+    (
+        db["audit"].insert_one(block.copy())
+        if USE_MONGO
+        else MEM_AUDIT.append(block.copy())
+    )
+
+  return rec
+
+
+@app.get("/state")
+def get_state():
+  latest = (
+      db["telemetry"].find_one(sort=[("_id", -1)], projection={"_id": 0})
+      if USE_MONGO
+      else (MEM_TELEMETRY[-1] if MEM_TELEMETRY else None)
+  )
+  ledger = (
+      list(db["audit"].find({}, {"_id": 0}).sort("_id", -1).limit(8))
+      if USE_MONGO
+      else MEM_AUDIT[::-1][:8]
+  )
+  return {"latest": latest, "ledger": ledger, "hubs": HUBS, "users": USERS}
