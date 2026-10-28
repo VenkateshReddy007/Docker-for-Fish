@@ -1,16 +1,14 @@
 import os
 import pandas as pd
+import requests
 import streamlit as st
 
-st.set_page_config(page_title="Docker for Fish",layouts = "wide")
+st.set_page_config(page_title="Docker for Fish", layout = "wide")
 st.title(
     "Docker for Fish : Smart Box(DHT + MQ-135) & Wireless Ring Dashboard"
 )
 
-PUBLIC_API_URL = st.sidebar.text_input(
-    "Paste Backend Public URL (Port 8000):",
-    os.getenv("PUBLIC_API_URL", "")
-).rstrip("/")
+PUBLIC_API_URL ="https://8000-kode-ws-5549e3aa7.hebbale.academy"
 
 HUB_COORDS = {
     "1. Panambur Harbour (Landing)": {"lat": 12.9480, "lon": 74.8060},

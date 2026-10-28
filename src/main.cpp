@@ -7,7 +7,7 @@
 const char* ssid = "";
 const char* password = " ";
 
-String baseUrl =" ";
+String baseUrl ="https: ";
 
 #define PIN_DHT 4
 #define PIN_MQ135 34

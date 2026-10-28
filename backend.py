@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
-from pyndatic import BaseModel, Field
+from pydantic import BaseModel, Field
 from pymongo import MongoClient
 from sklearn.ensemble import RandomForestRegressor
 
@@ -30,7 +30,7 @@ try:
     USE_MONGO = db is not None
 except Exception:
     USE_MONGO = False
-MEM_TELEMETRY, MEN_AUDIT = [], []
+MEM_TELEMETRY, MEM_AUDIT = [], []
 
 X_train = np.array([
     [2.0, 7.5, 25],
@@ -47,14 +47,14 @@ y_train = np.array([
     [44.0, 2.3],
     [36.0, 4.2],
     [21.0, 7.0],
-    [ 12.0,9.8],
-    [ 4.5, 14.2]
+    [12.0,9.8],
+    [ 4.5, 14.2],
     [38.0, 3.7],
     [16.0, 8.1],
     [1.5,  17.5],
 ])
 
-rf_model = RandomForestRegressor(n_estimator=10, random_state=42).fit(
+rf_model = RandomForestRegressor(n_estimators=10, random_state=42).fit(
     X_train,y_train
 )
 
