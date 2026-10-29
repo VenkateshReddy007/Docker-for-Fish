@@ -40,30 +40,49 @@ void readDHT11() {
   );
 }
 
+
 void setLEDsAndBuzzer(String res) {
-  JsonDocument doc;
+  int latestPos = res.indexOf("\"latest\"");
 
-  DeserializationError error = deserializeJson(doc , res);
+  if (latestPos >= 0) {
+    int start = res.indexOf('{', latestPos);
+    int end = res.indexOf('}', start);
 
-  if(error){
-    Serial.print("[JSON] Parse failed: ");
-    Serial.println(error.c_str());
-    return;
+    if (start >= 0 && end > start) {
+      res = res.substring(start, end + 1);
+    }
   }
 
-  JsonObject data = doc["latest"].is<JsonObject>() ? doc["latest"].as<JsonObject>() : doc.as<JsonObject>();
-  const char* color = data["ring_color"] | "UNKNOWN" ;
-  int beeps = data["beeps"] | 0;
+  String color = "";
+  int key = res.indexOf("\"ring_color\"");
 
-  Serial.print("[LED] Ring color: %s | Beeps: %d\n", color ,beeps);
-  digitalWrite(PIN_LED_GREEN,
-               strcmp(color , "GREEN") == 0 ? HIGH : LOW );
+  if (key >= 0) {
+    int colon = res.indexOf(':', key);
+    int firstQuote = res.indexOf('"', colon + 1);
+    int secondQuote = res.indexOf('"', firstQuote + 1);
 
-  digitalWrite(PIN_LED_YELLOW,
-               strcmp(color , "YELLOW") == 0 ? HIGH : LOW );
+    if (firstQuote >= 0 && secondQuote > firstQuote) {
+      color = res.substring(firstQuote + 1, secondQuote);
+    }
+  }
 
-  digitalWrite(PIN_LED_RED,
-               strcmp(color , "RED") == 0 ? HIGH : LOW );
+  int beeps = 0;
+  int beepKey = res.indexOf("\"beeps\"");
+
+  if (beepKey >= 0) {
+    int colon = res.indexOf(':', beepKey);
+
+    if (colon >= 0) {
+      beeps = res.substring(colon + 1).toInt();
+    }
+  }
+
+  Serial.printf("[LED] Color: %s | Beeps: %d\n",
+                color.c_str(), beeps);
+
+  digitalWrite(PIN_LED_GREEN, color == "GREEN" ? HIGH : LOW);
+  digitalWrite(PIN_LED_YELLOW, color == "YELLOW" ? HIGH : LOW);
+  digitalWrite(PIN_LED_RED, color == "RED" ? HIGH : LOW);
 
   for (int i = 0; i < beeps; i++) {
     digitalWrite(PIN_BUZZER, HIGH);
@@ -72,6 +91,7 @@ void setLEDsAndBuzzer(String res) {
     delay(200);
   }
 }
+
 
 void setup() {
   Serial.begin(115200);
