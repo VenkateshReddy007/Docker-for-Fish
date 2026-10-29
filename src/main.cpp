@@ -17,47 +17,27 @@ DHT dht(PIN_DHT , DHT_TYPE);
 #define PIN_MQ135 34
 #define PIN_BTN 19
 #define PIN_BUZZER 15
-#define PIN_LED_GREEN 35
+#define PIN_LED_GREEN 26
 #define PIN_LED_YELLOW 33
 #define PIN_LED_RED 27
 
 float lastTemp = 4.0, lastHum = 78.0;
 
 void readDHT11() {
-  uint8_t data[5] = {0, 0, 0, 0, 0};
-
-  pinMode(PIN_DHT, OUTPUT);
-  digitalWrite(PIN_DHT, LOW);
-  delay(18);
-  digitalWrite(PIN_DHT, HIGH);
-  delayMicroseconds(40);
-  pinMode(PIN_DHT, INPUT_PULLUP);
-
-  if (pulseIn(PIN_DHT, HIGH, 1000) == 0) return;
-  {
-    Serial.println("[DHT11] No Response on GPI0 13");
+  float humidity = dht.readHumidity();
+  float temperature =
+  dht.readTemperature();
+  if(isnan(humidity) || isnan(temperature)) {
+    Serial.println("[DHT11] Failed to read sensor!");
     return;
   }
+  lastTemp = temperature;
+  lastHum = humidity;
 
-  for (int i = 0; i < 40; i++) {
-    while (digitalRead(PIN_DHT) == LOW);
-
-    unsigned long t = micros();
-
-    while (digitalRead(PIN_DHT) == HIGH) {
-      if (micros() - t > 100) break;
-    }
-
-    if (micros() - t > 40) {
-      data[i / 8] |= (1 << (7 - (i % 8)));
-    }
-  }
-
-  if (data[0] > 0 &&
-      ((data[0] + data[1] + data[2] + data[3]) & 0xFF) == data[4]) {
-    lastHum = data[0];
-    lastTemp = data[2];
-  }
+  Serial.printf(
+    "[DHT11] Temperature: %.1f C | Humidity : %.1f %%\n",
+    lastTemp,lastHum
+  );
 }
 
 void setLEDsAndBuzzer(String res) {
@@ -105,7 +85,7 @@ void loop() {
     if (IS_BOX) {
       readDHT11();
 
-      Serial.printf("[DHT11] Temperature: %.1f C | Humidity: %.1f %%\n" , lastTemp , lastHum);
+      
 
       int rawGas = analogRead(PIN_MQ135);
       float gasPpm = map(constrain(rawGas, 0, 4095), 0, 4095, 20, 280);
