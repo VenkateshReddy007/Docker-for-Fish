@@ -1,4 +1,4 @@
-from datetime import datetime
+8from datetime import datetime
 import hashlib
 import os
 from fastapi import FastAPI
@@ -185,3 +185,21 @@ def get_state():
       else MEM_AUDIT[::-1][:8]
   )
   return {"latest": latest, "ledger": ledger, "hubs": HUBS, "users": USERS}
+
+
+@app.get("/history")
+def get_history(limit: int = 100):
+    limit = max(1, min(limit, 500))
+
+    if USE_MONGO:
+        records = list(
+            db["telemetry"]
+            .find({}, {"_id": 0})
+            .sort("_id", -1)
+            .limit(limit)
+        )
+        records.reverse()
+    else:
+        records = MEM_TELEMETRY[-limit:]
+
+    return {"history": records}
