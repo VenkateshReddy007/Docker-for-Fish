@@ -1,21 +1,25 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <DHT.h>
+
 
 #define IS_BOX true
 
 const char* ssid = "";
-const char* password = " ";
+const char* password = "";
 
-String baseUrl ="https: ";
+String baseUrl = "https://8000-kode-ws-5549e3aa7.hebbale.academy";
 
-#define PIN_DHT 4
+#define PIN_DHT 25
+#define DHT_TYPE DHT11
+DHT dht(PIN_DHT , DHT_TYPE);
 #define PIN_MQ135 34
-#define PIN_BTN 15
-#define PIN_BUZZER 27
-#define PIN_LED_GREEN 14
-#define PIN_LED_YELLOW 12
-#define PIN_LED_RED 13
+#define PIN_BTN 19
+#define PIN_BUZZER 15
+#define PIN_LED_GREEN 35
+#define PIN_LED_YELLOW 33
+#define PIN_LED_RED 27
 
 float lastTemp = 4.0, lastHum = 78.0;
 
@@ -30,6 +34,10 @@ void readDHT11() {
   pinMode(PIN_DHT, INPUT_PULLUP);
 
   if (pulseIn(PIN_DHT, HIGH, 1000) == 0) return;
+  {
+    Serial.println("[DHT11] No Response on GPI0 13");
+    return;
+  }
 
   for (int i = 0; i < 40; i++) {
     while (digitalRead(PIN_DHT) == LOW);
@@ -76,13 +84,15 @@ void setLEDsAndBuzzer(String res) {
 
 void setup() {
   Serial.begin(115200);
-
+  dht.begin();
   pinMode(PIN_BTN, INPUT_PULLUP);
   pinMode(PIN_BUZZER, OUTPUT);
   pinMode(PIN_LED_GREEN, OUTPUT);
   pinMode(PIN_LED_YELLOW, OUTPUT);
   pinMode(PIN_LED_RED, OUTPUT);
-
+  digitalWrite(PIN_LED_GREEN , HIGH);
+  digitalWrite(PIN_LED_YELLOW , HIGH);
+  digitalWrite(PIN_LED_RED , HIGH);
   Serial.println(IS_BOX ? "BOX ESP32 STARTED" : "RING ESP32 STARTED");
 
   WiFi.begin(ssid, password);
@@ -95,9 +105,13 @@ void loop() {
     if (IS_BOX) {
       readDHT11();
 
+      Serial.printf("[DHT11] Temperature: %.1f C | Humidity: %.1f %%\n" , lastTemp , lastHum);
+
       int rawGas = analogRead(PIN_MQ135);
       float gasPpm = map(constrain(rawGas, 0, 4095), 0, 4095, 20, 280);
       bool btnPressed = (digitalRead(PIN_BTN) == LOW);
+      
+      Serial.printf("Raw MQ135 ADC : %d | Gas: %.0f PPM\n" , rawGas , gasPpm);
 
       Serial.printf(
           "[BOX] Temp:%.1fC Hum:%.0f%% Gas:%.0fPPM Btn:%d\n",
