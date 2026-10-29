@@ -41,18 +41,29 @@ void readDHT11() {
 }
 
 void setLEDsAndBuzzer(String res) {
+  JsonDocument doc;
+
+  DeserializationError error = deserializeJson(doc , res);
+
+  if(error){
+    Serial.print("[JSON] Parse failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  JsonObject data = doc["latest"].is<JsonObject>() ? doc["latest"].as<JsonObject>() : doc.as<JsonObject>();
+  const char* color = data["ring_color"] | "UNKNOWN" ;
+  int beeps = data["beeps"] | 0;
+
+  Serial.print("[LED] Ring color: %s | Beeps: %d\n", color ,beeps);
   digitalWrite(PIN_LED_GREEN,
-               res.indexOf("\"ring_color\":\"GREEN\"") > 0 ? HIGH : LOW);
+               strcmp(color , "GREEN") == 0 ? HIGH : LOW );
 
   digitalWrite(PIN_LED_YELLOW,
-               res.indexOf("\"ring_color\":\"YELLOW\"") > 0 ? HIGH : LOW);
+               strcmp(color , "YELLOW") == 0 ? HIGH : LOW );
 
   digitalWrite(PIN_LED_RED,
-               res.indexOf("\"ring_color\":\"RED\"") > 0 ? HIGH : LOW);
-
-  int beeps = (res.indexOf("\"beeps\":2") > 0)
-                  ? 2
-                  : ((res.indexOf("\"beeps\":1") > 0) ? 1 : 0);
+               strcmp(color , "RED") == 0 ? HIGH : LOW );
 
   for (int i = 0; i < beeps; i++) {
     digitalWrite(PIN_BUZZER, HIGH);
@@ -78,22 +89,6 @@ void setup() {
   WiFi.begin(ssid, password);
 }
 
-void testLEDs() {
-  digitalWrite(PIN_LED_GREEN,HIGH);
-  digitalWrite(PIN_LED_YELLOW,HIGH);
-  digitalWrite(PIN_LED_RED,HIGH);
-  delay(1000);
-
-  digitalWrite(PIN_LED_GREEN,HIGH);
-  digitalWrite(PIN_LED_YELLOW,HIGH);
-  digitalWrite(PIN_LED_RED,LOW);
-  delay(1000);
-
-  digitalWrite(PIN_LED_GREEN,LOW);
-  digitalWrite(PIN_LED_YELLOW,LOW);
-  digitalWrite(PIN_LED_RED,HIGH);
-  delay(1000);
-}
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
