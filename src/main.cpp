@@ -78,6 +78,23 @@ void setup() {
   WiFi.begin(ssid, password);
 }
 
+void testLEDs() {
+  digitalWrite(PIN_LED_GREEN,HIGH);
+  digitalWrite(PIN_LED_YELLOW,HIGH);
+  digitalWrite(PIN_LED_RED,HIGH);
+  delay(1000);
+
+  digitalWrite(PIN_LED_GREEN,HIGH);
+  digitalWrite(PIN_LED_YELLOW,HIGH);
+  digitalWrite(PIN_LED_RED,LOW);
+  delay(1000);
+
+  digitalWrite(PIN_LED_GREEN,LOW);
+  digitalWrite(PIN_LED_YELLOW,LOW);
+  digitalWrite(PIN_LED_RED,HIGH);
+  delay(1000);
+}
+
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
