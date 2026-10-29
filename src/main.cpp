@@ -1,13 +1,14 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include<WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <DHT.h>
-
+bool ledTestDone = false ; 
 
 #define IS_BOX true
 
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "Yiascm Hackathon 1";
+const char* password = "Hack@2026";
 
 String baseUrl = "https://8000-kode-ws-5549e3aa7.hebbale.academy";
 
@@ -109,9 +110,34 @@ void setup() {
   WiFi.begin(ssid, password);
 }
 
+void loopLED(){
+  digitalWrite(PIN_LED_GREEN ,HIGH);
+  digitalWrite(PIN_LED_YELLOW , LOW);
+  digitalWrite(PIN_LED_RED ,LOW );
+  delay(2000);
+
+  digitalWrite(PIN_LED_GREEN, LOW);
+  digitalWrite(PIN_LED_YELLOW, HIGH);
+  digitalWrite(PIN_LED_RED , LOW);
+  delay(2000);
+
+  digitalWrite(PIN_LED_GREEN, LOW);
+  digitalWrite(PIN_LED_YELLOW, LOW);
+  digitalWrite(PIN_LED_RED , HIGH);
+  delay(2000);
+}
+
 
 void loop() {
+
+  if(!ledTestDone) {
+    ledTestDone = true;
+    loopLED();
+    return;
+  }
   if (WiFi.status() == WL_CONNECTED) {
+    WiFiClientSecure client;
+    client.setInsecure();
     HTTPClient http;
 
     if (IS_BOX) {
@@ -137,14 +163,18 @@ void loop() {
                     ",\"humidity\":" + String(lastHum) +
                     ",\"gas_ppm\":" + String(gasPpm) +
                     ",\"switch_user\":" + (btnPressed ? "true" : "false") + "}";
+      
+      int httpCode = http.POST(body);
+      Serial.printf("[HTTP] POST status : %d\n" , httpCode);
 
-      if (http.POST(body) == 200) {
+      if (httpCode == 200) {
         setLEDsAndBuzzer(http.getString());
       }
     } else {
-      http.begin(baseUrl + "/state");
+      http.begin(client ,baseUrl + "/state");
+      int httpCode = http.GET();
 
-      if (http.GET() == 200) {
+      if (httpCode == 200) {
         String res = http.getString();
         Serial.println("[RING] Synced with Box!");
         setLEDsAndBuzzer(res);
@@ -152,6 +182,9 @@ void loop() {
     }
 
     http.end();
+  }
+  else {
+    Serial.println("[WiFi] Connecting");
   }
 
   delay(2000);

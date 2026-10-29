@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import requests
 import streamlit as st
+import time
 
 st.set_page_config(page_title="Docker for Fish", layout = "wide")
 st.title(
@@ -159,3 +160,6 @@ with right:
 
 if st.button("Refresh Live Hardware Feed"):
     st.rerun()
+
+time.sleep(2)
+st.rerun()
