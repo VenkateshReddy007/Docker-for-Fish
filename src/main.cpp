@@ -2,12 +2,12 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <DHT.h>
-
+bool ledTestDone = false ; 
 
 #define IS_BOX true
 
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "Yiascm Hackathon 1";
+const char* password = "Hack@2026";
 
 String baseUrl = "https://8000-kode-ws-5549e3aa7.hebbale.academy";
 
@@ -109,8 +109,31 @@ void setup() {
   WiFi.begin(ssid, password);
 }
 
+void loopLED(){
+  digitalWrite(PIN_LED_GREEN ,HIGH);
+  digitalWrite(PIN_LED_YELLOW , LOW);
+  digitalWrite(PIN_LED_RED ,LOW );
+  delay(2000);
+
+  digitalWrite(PIN_LED_GREEN, LOW);
+  digitalWrite(PIN_LED_YELLOW, HIGH);
+  digitalWrite(PIN_LED_RED , LOW);
+  delay(2000);
+
+  digitalWrite(PIN_LED_GREEN, LOW);
+  digitalWrite(PIN_LED_YELLOW, LOW);
+  digitalWrite(PIN_LED_RED , HIGH);
+  delay(2000);
+}
+
 
 void loop() {
+
+  if(!ledTestDone) {
+    ledTestDone = true;
+    loopLED();
+    return;
+  }
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
 
